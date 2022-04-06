@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 import plotly.io as pio
+import matplotlib.pyplot as plt
 pio.templates.default = "simple_white"
 
 
@@ -23,7 +24,18 @@ def load_data(filename: str):
     Design matrix and response vector (prices) - either as a single
     DataFrame or a Tuple[DataFrame, Series]
     """
-    raise NotImplementedError()
+    data = pd.read_csv(filename).dropna().drop_duplicates().drop(["id", "lat", "long", "date"], 1)
+    data = data[(data["price"] > 0) & (data["sqft_living15"] > 0) & (data["sqft_lot15"] > 0) &
+                (data["sqft_above"] > 0) & (data["bedrooms"] >= 0) & (data["bathrooms"] >= 0) &
+                (data["floors"] > 0)]
+    # change the zipcode to categorical features
+    data.zipcode = data.zipcode.astype(int)
+    data = pd.get_dummies(data, prefix="zipcode", columns=["zipcode"], drop_first=True)
+    # change the build-year to categorical features
+    data.yr_built = (data.yr_built // 10).astype(int)
+    data = pd.get_dummies(data, prefix="dec_built", columns=["yr_built"], drop_first=True)
+    data.insert(loc=0, column="intercept", value=1, allow_duplicates=True)
+    return pd.DataFrame(data.drop("price", 1)), pd.Series(data["price"])
 
 
 def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") -> NoReturn:
@@ -43,19 +55,48 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
     output_path: str (default ".")
         Path to folder in which plots are saved
     """
-    raise NotImplementedError()
+    beneficial_f = X.sqft_living
+    other_f = X.sqft_lot15
+    correlation = np.abs((np.cov(beneficial_f, y))[0, 1] /
+                         (np.std(beneficial_f) * np.std(y)))
+    plt.scatter(beneficial_f, y)
+    plt.title(f'Pearson Correlation = {correlation}')
+    plt.xlabel('sqft_living')
+    plt.ylabel('Price')
+    plt.savefig(f"{output_path}/feature_evaluation_1")
+    correlation = np.abs((np.cov(other_f, y))[0, 1] /
+                         (np.std(other_f) * np.std(y)))
+    plt.scatter(other_f, y)
+    plt.title(f'Pearson Correlation = {correlation}')
+    plt.xlabel('sqft_lot15')
+    plt.ylabel('Price')
+    plt.savefig(f"{output_path}/feature_evaluation_2")
 
 
 if __name__ == '__main__':
     np.random.seed(0)
     # Question 1 - Load and preprocessing of housing prices dataset
-    raise NotImplementedError()
+    X, y = load_data("house_prices.csv")
 
     # Question 2 - Feature evaluation with respect to response
-    raise NotImplementedError()
+    feature_evaluation(X, y, "ex2_graphs")
 
     # Question 3 - Split samples into training- and testing sets.
-    raise NotImplementedError()
+    train_X, train_y, test_X, test_y = split_train_test(X, y)
+    lin_reg = LinearRegression.fit()
+    mse_vals = []
+    for i in range(10, 101):
+        set_i = train_X[:int(train_X.shape[0] * (i / 100))]
+        res_i = train_y[:int(train_y.shape[0] * (i / 100))]
+        w, sing_vals = fit_linear_regression(set_i, res_i)
+        y_hat = predict(test_set, w)
+        mse_vals.append(mse(test_res, y_hat))
+    print(mse_vals)
+    plt.plot(mse_vals, 'ro-')
+    plt.title('MSE through learning')
+    plt.xlabel('Percent of the training set')
+    plt.ylabel('MSE value')
+    plt.show()
 
     # Question 4 - Fit model over increasing percentages of the overall training data
     # For every percentage p in 10%, 11%, ..., 100%, repeat the following 10 times:
@@ -65,3 +106,5 @@ if __name__ == '__main__':
     #   4) Store average and variance of loss over test set
     # Then plot average loss as function of training size with error ribbon of size (mean-2*std, mean+2*std)
     raise NotImplementedError()
+
+
