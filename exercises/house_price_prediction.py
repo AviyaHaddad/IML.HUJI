@@ -83,20 +83,6 @@ if __name__ == '__main__':
 
     # Question 3 - Split samples into training- and testing sets.
     train_X, train_y, test_X, test_y = split_train_test(X, y)
-    lin_reg = LinearRegression.fit()
-    mse_vals = []
-    for i in range(10, 101):
-        set_i = train_X[:int(train_X.shape[0] * (i / 100))]
-        res_i = train_y[:int(train_y.shape[0] * (i / 100))]
-        w, sing_vals = fit_linear_regression(set_i, res_i)
-        y_hat = predict(test_set, w)
-        mse_vals.append(mse(test_res, y_hat))
-    print(mse_vals)
-    plt.plot(mse_vals, 'ro-')
-    plt.title('MSE through learning')
-    plt.xlabel('Percent of the training set')
-    plt.ylabel('MSE value')
-    plt.show()
 
     # Question 4 - Fit model over increasing percentages of the overall training data
     # For every percentage p in 10%, 11%, ..., 100%, repeat the following 10 times:
@@ -105,6 +91,22 @@ if __name__ == '__main__':
     #   3) Test fitted model over test set
     #   4) Store average and variance of loss over test set
     # Then plot average loss as function of training size with error ribbon of size (mean-2*std, mean+2*std)
-    raise NotImplementedError()
+    lin_reg = LinearRegression()
+    means = np.ndarray((91, 1))
+    stds = np.ndarray((91, 1))
+    for i in range(10, 101):
+        loss_array = np.ndarray((10, 1))
+        for j in range(0, 10):
+            set_i = train_X[:int(train_X.shape[0] * (i / 100))]
+            res_i = train_y[:int(train_y.shape[0] * (i / 100))]
+            lin_reg.fit(set_i, res_i)
+            loss_array[j] = lin_reg.loss(test_X.to_numpy(), test_y.to_numpy())
+        means[i] = loss_array.mean()
+        stds[i] = loss_array.std()
+    plt.plot(means, 'ro-')
+    plt.title('MSE through learning')
+    plt.xlabel('Percent of the training set')
+    plt.ylabel('MSE value')
+    plt.show()
 
 
