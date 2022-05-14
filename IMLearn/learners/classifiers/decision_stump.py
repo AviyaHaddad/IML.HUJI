@@ -1,5 +1,7 @@
 from __future__ import annotations
 from typing import Tuple, NoReturn
+
+import IMLearn.metrics.loss_functions
 from ...base import BaseEstimator
 import numpy as np
 from itertools import product
@@ -39,7 +41,16 @@ class DecisionStump(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        featurs_num = X.shape[1]
+        self.threshold_, min_error = np.inf, np.inf
+        for sign, j in product([-1, 1], range(featurs_num)):
+            new_threshold, error = self._find_threshold(X[:, j], y, sign)
+            if error < min_error:
+                min_error = error
+                self.threshold_ = new_threshold
+                self.sign_ = sign
+                self.j_ = j
+
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -63,7 +74,7 @@ class DecisionStump(BaseEstimator):
         Feature values strictly below threshold are predicted as `-sign` whereas values which equal
         to or above the threshold are predicted as `sign`
         """
-        raise NotImplementedError()
+        return np.where(X[:, self.j_] >= self.threshold_, self.sign_, -self.sign_)
 
     def _find_threshold(self, values: np.ndarray, labels: np.ndarray, sign: int) -> Tuple[float, float]:
         """
@@ -95,7 +106,18 @@ class DecisionStump(BaseEstimator):
         For every tested threshold, values strictly below threshold are predicted as `-sign` whereas values
         which equal to or above the threshold are predicted as `sign`
         """
-        raise NotImplementedError()
+        sort_indexs = np.argsort(values)
+        values, labels = values[sort_indexs], labels[sort_indexs]
+        loss = np.abs(np.sum(np.where(np.sign(labels) != sign, labels, 0)))
+        losses = [loss]
+        prev_loss = loss
+        for i in range(1, labels.shape[0]):
+            prev_loss += labels[i - 1] * sign
+            losses.append(prev_loss)
+        min_val = min(losses)
+        min_ind = losses.index(min_val)
+        return values[min_ind], losses[min_ind]
+
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -114,4 +136,4 @@ class DecisionStump(BaseEstimator):
         loss : float
             Performance under missclassification loss function
         """
-        raise NotImplementedError()
+        return IMLearn.metrics.loss_functions.misclassification_error(y, self.predict(X))
