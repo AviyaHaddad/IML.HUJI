@@ -33,13 +33,26 @@ def split_train_test(X: pd.DataFrame, y: pd.Series, train_proportion: float = .7
     test_y : Series of shape (floor((1-train_proportion) * n_samples), )
         Responses of test samples
 
-    """
-    h, l = X.shape
-    training_set = X[:math.ceil(h * (1 - train_proportion))]
-    training_res = y[:math.ceil(h * (1 - train_proportion))]
-    test_set = X[math.floor(h * train_proportion):]
-    test_res = y[math.floor(h * train_proportion):]
-    return pd.DataFrame(training_set), pd.Series(training_res), pd.DataFrame(test_set), pd.Series(test_res)
+    # """
+    # h, l = X.shape
+    # training_set = X[:math.ceil(h * (1 - train_proportion))]
+    # training_res = y[:math.ceil(h * (1 - train_proportion))]
+    # test_set = X[math.floor(h * train_proportion):]
+    # test_res = y[math.floor(h * train_proportion):]
+    # return pd.DataFrame(training_set), pd.Series(training_res), pd.DataFrame(test_set), pd.Series(test_res)
+
+    sample_count = X.shape[0]
+    train_set_size = np.round(sample_count * train_proportion).astype(int)
+
+    shuffled_indices = np.random.permutation(sample_count)
+    train_set_indices = shuffled_indices[:train_set_size]
+    test_set_indices = shuffled_indices[train_set_size:]
+    train_X = X.iloc[train_set_indices]
+    train_Y = y.iloc[train_set_indices]
+    test_X = X.iloc[test_set_indices]
+    test_Y = y.iloc[test_set_indices]
+
+    return train_X, train_Y, test_X, test_Y
 
 
 def confusion_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:

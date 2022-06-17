@@ -3,6 +3,8 @@ from copy import deepcopy
 from typing import Tuple, Callable
 import numpy as np
 from IMLearn import BaseEstimator
+from IMLearn.utils import split_train_test
+import pandas as pd
 
 
 def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray,
@@ -37,4 +39,25 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray,
     validation_score: float
         Average validation score over folds
     """
-    raise NotImplementedError()
+
+    fold_size = int(np.round(X.shape[0] / cv))
+    folds_x = []
+    folds_y = []
+    for i in range(cv):
+        if (i + 1) * fold_size > X.shape[0]:
+            folds_x.append(X[i * fold_size:])
+            folds_y.append(y[i * fold_size:])
+        else:
+            folds_x.append(X[i * fold_size:(i + 1) * fold_size])
+            folds_y.append(y[i * fold_size:(i + 1) * fold_size])
+    train_score = []
+    val_score = []
+    for k in range(cv):
+        new_train_x = np.concatenate([folds_x[i] for i in range(cv) if i != k], axis=0)
+        new_train_y = np.concatenate([folds_y[i] for i in range(cv) if i != k], axis=0)
+        val_x = folds_x[k]
+        val_y = folds_y[k]
+        estimator.fit(new_train_x, new_train_y)
+        train_score.append(scoring(new_train_y, estimator.predict(new_train_x)))
+        val_score.append(scoring(val_y, estimator.predict(val_x)))
+    return sum(train_score) / cv, sum(val_score) / cv

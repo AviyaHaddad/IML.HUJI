@@ -1,5 +1,8 @@
 from __future__ import annotations
 from typing import NoReturn
+
+import sklearn.linear_model
+
 from ...base import BaseEstimator, BaseModule
 from ...desent_methods.gradient_descent import GradientDescent
 import numpy as np
@@ -79,7 +82,9 @@ class LassoRegression(BaseEstimator):
         Fits model using specified `self.optimizer_` passed when instantiating class and includes an intercept
         if specified by `self.include_intercept_
         """
-        raise NotImplementedError()
+        if not self.include_intercept_:
+            X = np.append(np.zeros((X.shape[0], 1)), X, axis=1)
+        sklearn.linear_model.Lasso
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -95,7 +100,9 @@ class LassoRegression(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        if not self.include_intercept_:
+            X = np.append(np.zeros((X.shape[0], 1)), X, axis=1)
+        return X @ self.coefs_
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
