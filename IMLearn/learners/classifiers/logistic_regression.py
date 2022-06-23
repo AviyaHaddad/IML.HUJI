@@ -88,7 +88,20 @@ class LogisticRegression(BaseEstimator):
         Fits model using specified `self.optimizer_` passed when instantiating class and includes an intercept
         if specified by `self.include_intercept_
         """
-        raise NotImplementedError()
+        if self.include_intercept_:
+            X = np.append(np.zeros((X.shape[0], 1)), X, axis=1)
+        d = X.shape[1]
+        w = np.random.normal(0, 1, d) / np.sqrt(d)
+        reg = None
+        if self.penalty_ == "l1":
+            reg = L1(w)
+        elif self.penalty_ == "l2":
+            reg = L2(w)
+        reg_mod = RegularizedModule(LogisticModule(w), reg, self.lam_, w, self.include_intercept_)
+        self.solver_.fit(reg_mod, X, y)
+        self.coefs_ = reg_mod.weights
+        self.fitted_ = True
+
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -104,7 +117,7 @@ class LogisticRegression(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        return (self.predict_proba(X) > self.alpha_).astype(int)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
@@ -120,7 +133,9 @@ class LogisticRegression(BaseEstimator):
         probabilities: ndarray of shape (n_samples,)
             Probability of each sample being classified as `1` according to the fitted model
         """
-        raise NotImplementedError()
+        if self.include_intercept_:
+            X = np.append(np.zeros((X.shape[0], 1)), X, axis=1)
+        return 1 / (1 + np.exp(- X @ self.coefs_))
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -139,4 +154,8 @@ class LogisticRegression(BaseEstimator):
         loss : float
             Performance under misclassification error
         """
-        raise NotImplementedError()
+        y_hat = self._predict(X)
+        m = X.shape[0]
+        if self.include_intercept_:
+            m += 1
+        return float(np.sum(y_hat != y)) / X.shape[0]
